@@ -39,8 +39,7 @@ It takes a face image and generates realistic age-transformed versions (from you
 └── README.md # This file
 
 yaml
-Copy
-Edit
+
 
 ---
 
@@ -59,22 +58,16 @@ pip install -U --no-cache-dir gdown --pre
 pip install Ninja torch torchvision
 Download pretrained weights
 
-bash
-Copy
-Edit
 gdown --id 1OmfAjP3BAqVxaQ2pwyJuOYUHy_incMNd -O mtlface_checkpoints.tar
 Fix imports for StyleGAN2 ops
 
-bash
-Copy
-Edit
+
 echo "from mtlface.stylegan2.op import upfirdn2d, FusedLeakyReLU, fused_leaky_relu" > colab_init.py
 python colab_init.py
 🚀 Running the Project
 🖼️ Preprocess Images
-python
-Copy
-Edit
+
+
 from PIL import Image
 from torchvision import transforms
 
@@ -87,9 +80,8 @@ transform = transforms.Compose([
 img = Image.open('230302.png').convert("RGB")
 input_img = transform(img).unsqueeze(0).cuda()
 🔍 Load the Model
-python
-Copy
-Edit
+
+
 from mtlface.modules import MTLFace
 mtlface = MTLFace().cuda().eval()
 mtlface.load_state_dict(torch.load('mtlface_checkpoints.tar'))
@@ -101,17 +93,13 @@ x_vec, x_age = mtlface.encode(input_img)
 # x_vec: feature vector for face verification
 # x_age: predicted age
 🧓 Face Age Synthesis
-python
-Copy
-Edit
+
 bs = input_img.size(0)
 target_labels = torch.arange(7).cuda().unsqueeze(1).repeat(bs, 1).flatten()
 repeat_images = input_img.unsqueeze(1).repeat(1, 7, 1, 1, 1).view(-1, 3, 112, 112)
 outputs = mtlface.aging(repeat_images, target_labels).view(bs, 7, 3, 112, 112)
 🎨 Visualize Results
-python
-Copy
-Edit
+
 from torchvision.utils import make_grid
 from torchvision.transforms.functional import to_pil_image
 
