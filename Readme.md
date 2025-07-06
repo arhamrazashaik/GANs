@@ -1,135 +1,147 @@
-# FACE\_AGE\_SYNTHESIS\_USING\_GANs
+# 👤 Face Age Synthesis using GANs (MTLFace)
 
-A Python-based implementation for **face age progression and regression** using Generative Adversarial Networks (GANs). This project demonstrates how to synthesize aged faces while preserving identity using a two-stage GAN pipeline.
+This project uses a **Conditional GAN**–based **MTLFace** (Multi-Task Learning Face) model to perform:
 
----
+- 🔍 Face Verification  
+- 🧠 Age Estimation  
+- 🕒 Face Age Progression & Regression (Aging GAN)  
 
-## 🚀 Features
-
-- **Age-conditioned synthesis**: Generate face images at target ages while keeping the same identity.
-- **Two-stage GAN architecture**:
-  1. **cStyleGAN**: Produces a set of images across multiple ages from a single identity seed.
-  2. **FaceGAN (U-Net-based generator)**: Learns finer age details by comparing real and synthesized data.
-- **Semi-supervised learning**: Combines real and synthetic images to provide effective paired supervision without relying on large paired datasets.
-- **Identity preservation**: Maintains visual cues like facial shape, glasses, beard, across synthesized ages.
-- **Dataset support**: UTKFace for training; FG‌-NET for qualitative evaluation.
+It takes a face image and generates realistic age-transformed versions (from young to old) while **preserving identity**.
 
 ---
 
-## 📁 Repository Structure
+## 📌 Features
 
-```
-FACE_AGE_SYNTHESIS_USING_GANs/
-├── python_package/
-│   └── notebook/
-│       └── example.ipynb        ← Demo notebook showcasing training and inference
-├── models/                      ← Pre-trained GAN weights (if available)
-├── data/
-│   ├── UTKFace/                 ← Training dataset examples
-│   └── FG-NET/                  ← Evaluation dataset samples
-├── src/
-│   ├── cstylegan.py             ← Conditional StyleGAN implementation
-│   ├── facegan.py               ← U-Net + adversarial training model
-│   ├── utils.py                 ← Data loaders & utility functions
-│   └── train.py                 ← Full training script
-├── requirements.txt            ← Required Python packages
-└── README.md                   ← This file
-```
+- ✅ Multi-task Learning Model (FaceID + Age Estimation + Age Synthesis)
+- ✅ Conditional GAN trained to generate face at specific target ages
+- ✅ Architecture inspired by StyleGAN2 for high-quality synthesis
+- ✅ Cosine Similarity for face recognition
+- ✅ PyTorch-based and GPU-accelerated
 
 ---
 
-## ✅ Getting Started
+## 🧰 Tech Stack
 
-### 1. Install dependencies
+- Python 🐍  
+- PyTorch ⚡  
+- MTLFace Pretrained Model  
+- TorchVision (for transforms and visualization)  
+- Google Colab or local CUDA environment  
 
+---
+
+## 📁 Project Structure
+
+├── MTLFace/ # Cloned repo
+├── mtlface_checkpoints.tar # Pretrained weights
+├── 230302.png, 071A42.JPG # Sample face images
+├── inference_script.py # Your implementation
+└── README.md # This file
+
+yaml
+Copy
+Edit
+
+---
+
+## 🔧 Setup Instructions
+
+1. **Clone the MTLFace repo**
 ```bash
-pip install -r requirements.txt
-```
+git clone --depth 1 https://github.com/Hzzone/MTLFace.git
+mv MTLFace/python_package/* .
+Install dependencies
 
-### 2. Prepare data
+bash
+Copy
+Edit
+pip install -U --no-cache-dir gdown --pre
+pip install Ninja torch torchvision
+Download pretrained weights
 
-- Download and place **UTKFace** and **FG-NET** datasets into `data/UTKFace/` and `data/FG-NET/`.
+bash
+Copy
+Edit
+gdown --id 1OmfAjP3BAqVxaQ2pwyJuOYUHy_incMNd -O mtlface_checkpoints.tar
+Fix imports for StyleGAN2 ops
 
-### 3. Train the models
+bash
+Copy
+Edit
+echo "from mtlface.stylegan2.op import upfirdn2d, FusedLeakyReLU, fused_leaky_relu" > colab_init.py
+python colab_init.py
+🚀 Running the Project
+🖼️ Preprocess Images
+python
+Copy
+Edit
+from PIL import Image
+from torchvision import transforms
 
-```bash
-python src/train.py --dataset UTKFace --mode cStyleGAN
-python src/train.py --dataset UTKFace --mode FaceGAN
-```
+transform = transforms.Compose([
+    transforms.Resize((112, 112)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+])
 
-### 4. Run the demo
+img = Image.open('230302.png').convert("RGB")
+input_img = transform(img).unsqueeze(0).cuda()
+🔍 Load the Model
+python
+Copy
+Edit
+from mtlface.modules import MTLFace
+mtlface = MTLFace().cuda().eval()
+mtlface.load_state_dict(torch.load('mtlface_checkpoints.tar'))
+✅ Face Verification + Age Estimation
+python
+Copy
+Edit
+x_vec, x_age = mtlface.encode(input_img)
+# x_vec: feature vector for face verification
+# x_age: predicted age
+🧓 Face Age Synthesis
+python
+Copy
+Edit
+bs = input_img.size(0)
+target_labels = torch.arange(7).cuda().unsqueeze(1).repeat(bs, 1).flatten()
+repeat_images = input_img.unsqueeze(1).repeat(1, 7, 1, 1, 1).view(-1, 3, 112, 112)
+outputs = mtlface.aging(repeat_images, target_labels).view(bs, 7, 3, 112, 112)
+🎨 Visualize Results
+python
+Copy
+Edit
+from torchvision.utils import make_grid
+from torchvision.transforms.functional import to_pil_image
 
-Open \`\` to walk through inference and visual results.
+grid = make_grid(torch.cat([input_img.unsqueeze(1), outputs], dim=1).view(-1, 3, 112, 112)) * 0.5 + 0.5
+to_pil_image(grid).show()
+🧠 Key Concepts
+Conditional GAN (cGAN): Generator takes a face + age label → outputs age-transformed face
 
----
+Multi-task Learning: Trains for recognition, estimation, and generation together
 
-## 🎯 Approach Overview
+Cosine Similarity: Used to compare face identity feature vectors
 
-1. **cStyleGAN**
+StyleGAN2-Inspired Layers: Architecture uses advanced layers like FusedLeakyReLU for quality
 
-   - Trains a conditional generator (StyleGAN-like) using age labels and real images.
-   - Synthesizes face images across target age groups for the same identity.
-   - Provides “paired” age data for further training.
+🎯 Applications
+Missing person search (age progression)
 
-2. **FaceGAN (U-Net)**
+Digital avatars & social apps
 
-   - Uses the synthesized images from cStyleGAN as “ground-truth” for reconstruction.
-   - Learns age transformation while preserving high-frequency and identity details.
-   - Combines adversarial, identity, and reconstruction losses for training.
+Face morphing and entertainment
 
-3. **Semi-supervised learning**
+Identity-preserving image editing
 
-   - Mixes *real* and *synthesized* training samples.
-   - Enhances both age realism and identity permanence without paired data.
+📚 References
+MTLFace GitHub
 
----
+StyleGAN2 Paper
 
-## 🔍 Example Usage (Notebook)
+Face Aging using GANs – Survey
 
-Within `example.ipynb`, you'll find:
-
-- Loading a real face image + target age
-- How cStyleGAN synthesizes multiple age variants
-- FaceGAN refinement of aging effects
-- Visual comparisons of learned identity preservation and aging progression
-
----
-
-## ✅ Results & Validation
-
-- Shows realistic aged/rejuvenated faces.
-- Maintains identity across long age ranges (e.g. beard, bone structure).
-- Quantitative benefits measured via face detection (MTCNN) and recognition models (ResNet‌-50, VGGFace2).
-
----
-
-## 📒 References
-
-- Wang et al. “Age-Oriented Face Synthesis with Conditional Discriminator Pool…”
-  - [arxiv.org](https://arxiv.org/abs/2007.00792)
-  - [arxiv.org](https://arxiv.org/abs/1901.07528)
-  - [mdpi.com](https://www.mdpi.com/2079-9292/9/4/603)
-- **SS-FaceGAN**: Semi-supervised GAN framework combining StyleGAN + U-Net architectures.
-- Related works: Pyramid GANs, PFA-GAN, etc.
-
----
-
-## 🛠 Future Work
-
-- Add more age groups or guide aging paths more precisely.
-- Integrate face recognition-loss to further enforce identity through training.
-- Optimize inference speed for real-time applications.
-
----
-
-## 👤 Author
-
-**Arham Raza Shaik**\
-[GitHub](https://github.com/arhamrazashaik)
-
----
-
-## 📄 License
-
-[MIT License](LICENSE) — Free to use, modify, and distribute for academic or commercial purposes.
-
+👨‍💻 Author
+Arham Raza
+B.Tech CSE | AI & ML Enthusiast
