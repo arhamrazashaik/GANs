@@ -38,7 +38,7 @@ It takes a face image and generates realistic age-transformed versions (from you
 ├── inference_script.py # Your implementation
 └── README.md # This file
 
-yaml
+
 
 
 ---
@@ -51,9 +51,7 @@ git clone --depth 1 https://github.com/Hzzone/MTLFace.git
 mv MTLFace/python_package/* .
 Install dependencies
 
-bash
-Copy
-Edit
+
 pip install -U --no-cache-dir gdown --pre
 pip install Ninja torch torchvision
 Download pretrained weights
@@ -86,9 +84,7 @@ from mtlface.modules import MTLFace
 mtlface = MTLFace().cuda().eval()
 mtlface.load_state_dict(torch.load('mtlface_checkpoints.tar'))
 ✅ Face Verification + Age Estimation
-python
-Copy
-Edit
+
 x_vec, x_age = mtlface.encode(input_img)
 # x_vec: feature vector for face verification
 # x_age: predicted age
